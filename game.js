@@ -1,161 +1,126 @@
 
-        class MainScene extends Phaser.Scene {
+        
+
+        class ShadowBlade extends Phaser.Scene {
 
     constructor() {
-        super("main");
-
-        // Game States
-        this.health = 3;
-        this.gameOver = false;
-
-        // Controls
-        this.moveLeft = false;
-        this.moveRight = false;
-        this.jumpPressed = false;
-        this.attackPressed = false;
-
+        super("ShadowBlade");
+        this.level = 1;
+        this.health = 5;
         this.canDoubleJump = false;
     }
 
     preload() {
-
-        // Background
-        this.load.image('sky', 'https://labs.phaser.io/assets/skies/deepblue.png');
-
-        // Ground
-        this.load.image('ground', 'https://labs.phaser.io/assets/sprites/platform.png');
-
-        // Player
-        this.load.image('player', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
-
-        // Enemy
-        this.load.image('enemy', 'https://labs.phaser.io/assets/sprites/baddie.png');
+        this.load.image("sky", "https://labs.phaser.io/assets/skies/space3.png");
+        this.load.image("ground", "https://labs.phaser.io/assets/sprites/platform.png");
+        this.load.image("ninja", "https://labs.phaser.io/assets/sprites/phaser-dude.png");
+        this.load.image("enemy", "https://labs.phaser.io/assets/sprites/baddie.png");
+        this.load.image("trap", "https://labs.phaser.io/assets/sprites/spikedball.png");
     }
 
     create() {
 
-        // Background
-        this.add.image(640, 360, 'sky').setScale(2);
+        this.add.tileSprite(0,0,4000,720,"sky").setOrigin(0,0);
 
-        // Platforms
         this.platforms = this.physics.add.staticGroup();
-        this.platforms.create(640, 700, 'ground').setScale(4).refreshBody();
+        this.platforms.create(2000,700,"ground").setScale(8).refreshBody();
 
-        // Player
-        this.player = this.physics.add.sprite(200, 500, 'player');
+        this.player = this.physics.add.sprite(100,500,"ninja");
         this.player.setCollideWorldBounds(true);
-        this.physics.add.collider(this.player, this.platforms);
 
-        // Enemy Group
+        this.physics.add.collider(this.player,this.platforms);
+
         this.enemies = this.physics.add.group();
-        this.spawnEnemy(900, 500);
+        this.traps = this.physics.add.group();
 
-        this.physics.add.collider(this.enemies, this.platforms);
-        this.physics.add.overlap(this.player, this.enemies, this.damagePlayer, null, this);
+        for(let i=1;i<=10;i++){
+            this.enemies.create(600*i,500,"enemy")
+                .setVelocityX(Phaser.Math.Between(-100,100))
+                .setBounce(1)
+                .setCollideWorldBounds(true);
 
-        // Keyboard Controls
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+            this.traps.create(800*i,650,"trap");
+        }
 
-        // Health UI
-        this.healthText = this.add.text(20, 20, 'Health: 3', { fontSize: '32px', fill: '#fff' });
+        this.physics.add.collider(this.enemies,this.platforms);
 
-        // Mobile Controls
-        this.createMobileControls();
+        this.physics.add.overlap(this.player,this.enemies,this.hitEnemy,null,this);
+        this.physics.add.overlap(this.player,this.traps,this.hitTrap,null,this);
+
+        this.cameras.main.startFollow(this.player);
+        this.cameras.main.setBounds(0,0,4000,720);
+        this.physics.world.setBounds(0,0,4000,720);
+
+        this.createButtons();
+
+        this.healthText = this.add.text(20,20,"Health: 5",{fontSize:"24px",fill:"#fff"})
+            .setScrollFactor(0);
     }
 
-    spawnEnemy(x, y) {
-        let enemy = this.enemies.create(x, y, 'enemy');
-        enemy.setVelocityX(-150);
-        enemy.setCollideWorldBounds(true);
-        enemy.setBounce(1);
-    }
-
-    createMobileControls() {
+    createButtons(){
 
         const style = {
-            font: '30px Arial',
-            fill: '#ffffff',
-            backgroundColor: '#000000'
+            font:"30px Arial",
+            fill:"#fff",
+            backgroundColor:"#000"
         };
 
-        this.leftBtn = this.add.text(100, 650, '◀', style).setInteractive();
-        this.rightBtn = this.add.text(200, 650, '▶', style).setInteractive();
-        this.jumpBtn = this.add.text(1050, 650, '⤒', style).setInteractive();
-        this.attackBtn = this.add.text(1150, 650, '⚔', style).setInteractive();
+        this.leftBtn = this.add.text(100,650,"◀",style).setScrollFactor(0).setInteractive();
+        this.rightBtn = this.add.text(200,650,"▶",style).setScrollFactor(0).setInteractive();
+        this.jumpBtn = this.add.text(1000,650,"⤒",style).setScrollFactor(0).setInteractive();
+        this.doubleBtn = this.add.text(1100,650,"⤊",style).setScrollFactor(0).setInteractive();
+        this.attackBtn = this.add.text(1200,650,"⚔",style).setScrollFactor(0).setInteractive();
 
-        this.leftBtn.on('pointerdown', () => this.moveLeft = true);
-        this.leftBtn.on('pointerup', () => this.moveLeft = false);
+        this.leftBtn.on("pointerdown",()=>this.player.setVelocityX(-200));
+        this.rightBtn.on("pointerdown",()=>this.player.setVelocityX(200));
 
-        this.rightBtn.on('pointerdown', () => this.moveRight = true);
-        this.rightBtn.on('pointerup', () => this.moveRight = false);
+        this.leftBtn.on("pointerup",()=>this.player.setVelocityX(0));
+        this.rightBtn.on("pointerup",()=>this.player.setVelocityX(0));
 
-        this.jumpBtn.on('pointerdown', () => this.jumpPressed = true);
-        this.jumpBtn.on('pointerup', () => this.jumpPressed = false);
-
-        this.attackBtn.on('pointerdown', () => this.attackPressed = true);
-        this.attackBtn.on('pointerup', () => this.attackPressed = false);
-    }
-
-    update() {
-
-        if (this.gameOver) return;
-
-        let movingLeft = this.cursors.left.isDown || this.moveLeft;
-        let movingRight = this.cursors.right.isDown || this.moveRight;
-        let jumping = Phaser.Input.Keyboard.JustDown(this.cursors.up) || this.jumpPressed;
-        let attacking = Phaser.Input.Keyboard.JustDown(this.attackKey) || this.attackPressed;
-
-        // Movement
-        if (movingLeft) {
-            this.player.setVelocityX(-200);
-        }
-        else if (movingRight) {
-            this.player.setVelocityX(200);
-        }
-        else {
-            this.player.setVelocityX(0);
-        }
-
-        // Jump
-        if (jumping) {
-            if (this.player.body.touching.down) {
+        this.jumpBtn.on("pointerdown",()=>{
+            if(this.player.body.touching.down){
                 this.player.setVelocityY(-500);
                 this.canDoubleJump = true;
             }
-            else if (this.canDoubleJump) {
+        });
+
+        this.doubleBtn.on("pointerdown",()=>{
+            if(this.canDoubleJump){
                 this.player.setVelocityY(-500);
                 this.canDoubleJump = false;
             }
-        }
-
-        // Attack
-        if (attacking) {
-            this.enemies.children.iterate((enemy) => {
-                if (enemy && Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) < 120) {
-                    enemy.destroy();
-                }
-            });
-        }
-
-        this.jumpPressed = false;
-        this.attackPressed = false;
-    }
-
-    damagePlayer(player, enemy) {
-
-        this.health -= 1;
-        this.healthText.setText('Health: ' + this.health);
-
-        player.setTint(0xff0000);
-
-        this.time.delayedCall(200, () => {
-            player.clearTint();
         });
 
-        if (this.health <= 0) {
-            this.gameOver = true;
-            this.add.text(500, 300, 'GAME OVER', { fontSize: '64px', fill: '#ff0000' });
+        this.attackBtn.on("pointerdown",()=>{
+            this.enemies.children.iterate(enemy=>{
+                if(enemy && Phaser.Math.Distance.Between(
+                    this.player.x,this.player.y,
+                    enemy.x,enemy.y) < 120){
+                        enemy.destroy();
+                }
+            });
+        });
+    }
+
+    hitEnemy(player,enemy){
+        this.health -=1;
+        this.healthText.setText("Health: "+this.health);
+        if(this.health<=0){
+            this.scene.restart();
+        }
+    }
+
+    hitTrap(player,trap){
+        this.health -=1;
+        this.healthText.setText("Health: "+this.health);
+        if(this.health<=0){
+            this.scene.restart();
+        }
+    }
+
+    update(){
+        if(this.player.body.touching.down){
+            this.canDoubleJump = true;
         }
     }
 }
@@ -164,14 +129,15 @@ const config = {
     type: Phaser.AUTO,
     width: 1280,
     height: 720,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 1000 },
-            debug: false
+    parent:"game",
+    physics:{
+        default:"arcade",
+        arcade:{
+            gravity:{y:1000},
+            debug:false
         }
     },
-    scene: MainScene
+    scene:ShadowBlade
 };
 
 new Phaser.Game(config);
