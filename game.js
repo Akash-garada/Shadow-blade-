@@ -30,12 +30,17 @@
 
         // Enemy Group
         this.enemies = this.physics.add.group();
+let enemy1 = this.enemies.create(900, 500, 'enemy');
+enemy1.setVelocityX(-150);
+enemy1.setCollideWorldBounds(true);
+enemy1.setBounce(1);
+enemy1.body.onWorldBounds = true;
 
-        let enemy1 = this.enemies.create(900, 500, 'enemy');
-        enemy1.setVelocityX(-100);
-        enemy1.setCollideWorldBounds(true);
-        enemy1.setBounce(1);
-
+this.physics.world.on('worldbounds', function(body) {
+    if (body.gameObject === enemy1) {
+        enemy1.setVelocityX(enemy1.body.velocity.x * -1);
+    }
+});
         this.physics.add.collider(this.enemies, this.platforms);
         this.physics.add.overlap(this.player, this.enemies, this.damagePlayer, null, this);
 
